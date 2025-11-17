@@ -1,0 +1,3 @@
+*.pdf binary
+*.pdf -diff
+*.pdf -merge
