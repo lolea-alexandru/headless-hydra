@@ -29,6 +29,16 @@
 \section{Introduction}
 Collaboration has always been the key to rapid and successful technology development in all fields. However, exposing unnecessary information to the party with which you are working increases the risk that mallicious individuals might get ahold of that data.
 
+For example, let there be a private hospital and the government of the country
+in which the hospital is. Now let's say the hospital wants to check which of their patients
+have already been vaccinated. In order to perform this statistic, they need to compute
+the intersection between the list of patients that they have and the national vaccination registry.
+Here comes the security related part: the hospital must protect its patient's data, meaning it can't
+let the government know which patients it has, while the government also needs to protect the data inside the national vaccination registry.
+
+This is where the Private Set Intersection technique comes into play: Both parties "blind" the elements in their sets and then compute the intersection on that 
+"blinded" data. This is a unifying principle accross all PSI protocols, as it guarantees that no additional information is revealed to either side.
+
 
 \section{Related Work}
 \section{Methodology}
