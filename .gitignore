@@ -1,0 +1,30 @@
+
+.DS_Store
+
+# LaTeX ignored files
+# LaTeX intermediate files
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.out
+*.toc
+*.lof
+*.lot
+*.bbl
+*.blg
+
+# latexmk generated files
+*.pdfsync
+*.nav
+*.snm
+
+# other common TeX build artifacts
+*.dvi
+*.xdv
+*.ps
+
+# editor/backups (optional)
+*~
+*.swp
