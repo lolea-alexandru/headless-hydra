@@ -56,15 +56,61 @@ This is where the Private Set Intersection technique comes into play: Both parti
 
 \section{Related Work}
 Private Set Intersection is a very well researched domain, proven by the fact that only in this year has already seen at least 600 publications (verified easily 
-by querying research databases such as ACM Digital Library). Throughout this extensive research, implementations of PSI hav been split into two different categories: traditional and 
-delegated. 
-
+by querying research databases such as ACM Digital Library). Throughout this extensive research, implementations of PSI have two methods of being split.
+The first method is concerned with the types of parties that take part into the computation itself, which separates PSI
+into Traditional (only the parties holding the sets participate) and Delegated (blinded sets are sent to a third server that aids in computing the intersection) PSI.
+The second method is concerned with how strict result matching is. In this regard, the two categories are 
+Classical (matching is done based on strict equality) and Fuzzy PSI (matching is done based on an exact match plus values that are within a specified similarity threshold).
+In the rest of this section I will present what characterizes each of these categories and give relevant examples of algorithms.
 \subsection{Traditional PSI}
 Traditional PSI is defined by the fact that the only parties involved in the computation of intersections are the client and the server. 
+The usual steps taken in order to compute the intersection are the following:
+  \begin{enumerate}
+    \item Each of the two parties "blind" their sets of data. This can be done through methods such as encryption or hashing
+    \item The client receives the blinded elements of the server and vice versa
+    \item Finally, the client computes the intersection (e.g. by raising the keys received from the server to the power of the client's key)
+  \end{enumerate}
+
+Some examples for this type of PSI include: Diffie-Hellman, De Cristofaro-Tsudik and KKRT PSI.
+
 
 \subsection{Delegated PSI}
+As mentioned in the beginning of this section, Delegated PSI involves a third party to which computation and/or storage of 
+sets is delegated. This category can be once again split into the following two sub-categories:
+\begin{enumerate}
+  \item Algorithms that support one-off delegation 
+  \item Algorithms that support repeated delegation
+\end{enumerate}
+
+\textbf{One-off delegation} requires the parties to reencode and send their data to the server for every computation. 
+
+\textbf{Repeated delegation} allows the parties to only upload their data once and then re-use it for every computation.
+\vspace{1em} 
+
+Some Delegated PSI algorithms are the following: Two-Server OPRF-Based Delegated PSI and FSS-Based Delegated PSI
+\subsection{Classical PSI}
+Switching the classification axis, we are now categorizing the algorithms based on how strict the matching criteria is. Thus,
+we begin with Classical PSI which only takes into account exact matches when computing the intersection. Coming back to our original
+hospital example from the introduction, the Classical PSI algorithms will only output patient IDs that are in both the hospital and
+national vaccination registries. It is clear why we can't afford to allow room for uncertainty in this case, since we don't want an unvaccinated patient
+who has a similar ID to one that is vaccinated show up in the computed intersection.
+
+The following examples are Classical PSI algorithms: Standard Deffie-Hellman and Pinkas-Schneider-Zohner PSI
+
+\subsection{Fuzzy PSI}
+By contrast, Fuzzy PSI algorithms compute the intersection of the two sets by computing an exact match and then allowing 
+results that are within a similarity threshold pass as being "close enough". One use case of this class of PSI algorithms 
+is with regards to biometrics. Whenever you create a facial ID, the machine learning algorithm behind it maps your features
+to values (e.g. depending on skin color, face shape, eye distance etc.). However, it can't always look for an exact match whenever
+the user wants to access the biometrically secured device may be in a variety of environments which affect values for the features 
+mentioned before (e.g. environmental lighting differs). Thus, it starts from the exact match and looks for similar results.
+
+Examples of these algorithms include Approx-PSI and the Bloom filter PSI for genomic privacy
+ 
 
 \section{Methodology}
 \section{Timeline}
+
+\section{References}
 
 \end{document}
