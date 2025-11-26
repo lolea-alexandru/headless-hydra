@@ -69,16 +69,16 @@ impl PsiParty {
 }
 
 // Safe prime chosen for the implementation of this toy model
-const P: u64 = 23;
+const P: u64 = 65519;
 
 
 fn main() {
-    let alice_elements = ["Arthas", "Illidan", "Malfurion"];
+    let alice_elements = ["Litch King", "Thrall", "Malfurion"];
     let bob_elements = ["Arthas", "Thrall", "Vol'jin"];
 
     let mut alice   = PsiParty::new(
         String::from("Alice"),
-        4,
+        6,
         HashSet::from(alice_elements.map(|str| String::from(str)))
     );
 
@@ -95,7 +95,10 @@ fn main() {
 
     let alice_final = alice.process_peer_elements(bob_blinded);
     let bob_final = bob.process_peer_elements(alice_blinded); 
-    
-    println!("Alice is sending: {:?}", alice_final);    
-    println!("Bob is sending: {:?}", bob_final);    
+
+    let alice_lookup: Vec<u64> = alice_final.into_iter().collect();
+
+    let intersection: Vec<u64> = bob_final.into_iter().filter(|el| alice_lookup.contains(el)).collect();
+
+    println!("Bob is sending: {:?}", intersection);    
 }
