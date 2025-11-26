@@ -23,6 +23,25 @@ fn map_to_group(input: &str) -> u64 {
     return mapped_val;
 }
 
+fn modulus_pow(mut base: u64, mut exp: u64, modulus: u64) -> u64 {
+    if modulus == 1 {return 0;}
+
+    let mut result = 1;
+    base = base % modulus;
+    
+    // Algorithm taken from https://en.wikipedia.org/wiki/Modular_exponentiation
+    while exp > 0 {
+        if exp % 2 == 1 {
+            result = (result * base) % modulus;
+        }
+
+        base = (base * base) % modulus;
+        exp = exp / 2;
+    }   
+
+    return result;
+}
+
 impl PsiParty {
     fn new(name: String, secret_key: u64, elements: HashSet<String>) -> Self {
         PsiParty {
@@ -37,7 +56,14 @@ impl PsiParty {
             // The primitive root
             let g = map_to_group(el);
             
-            return g;
+            let g_exp_secret_key = modulus_pow(g, self.secret_key, P);
+            return g_exp_secret_key;
+        }).collect()
+    }
+
+    fn process_peer_elements(&self, peer_blinded_elements: Vec<u64>) -> Vec<u64> {
+        peer_blinded_elements.iter().map(|&el| {
+            return modulus_pow(el, self.secret_key, P)
         }).collect()
     }
 }
@@ -63,10 +89,13 @@ fn main() {
     );
 
     println!("Welcome to the PSI demo build on top of Diffie-Hellman");
-
+        
     let alice_blinded = alice.process_elements();
     let bob_blinded = bob.process_elements();
 
-    println!("Alice is sending: {:?}", alice_blinded);    
-    println!("Bob is sending: {:?}", bob_blinded);    
+    let alice_final = alice.process_peer_elements(bob_blinded);
+    let bob_final = bob.process_peer_elements(alice_blinded); 
+    
+    println!("Alice is sending: {:?}", alice_final);    
+    println!("Bob is sending: {:?}", bob_final);    
 }
