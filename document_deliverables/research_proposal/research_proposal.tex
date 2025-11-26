@@ -55,12 +55,12 @@ This is where the Private Set Intersection technique comes into play: Both parti
 
 
 \section{Related Work}
-Private Set Intersection is a very well researched domain, proven by the fact that only in this year has already seen at least 600 publications (verified easily 
+~\cite{morales_private_2023} Private Set Intersection is a very well researched domain, proven by the fact that only in this year has already seen at least 600 publications (verified easily 
 by querying research databases such as ACM Digital Library). Throughout this extensive research, implementations of PSI have two methods of being split.
 The first method is concerned with the types of parties that take part into the computation itself, which separates PSI
-into Traditional (only the parties holding the sets participate) and Delegated (blinded sets are sent to a third server that aids in computing the intersection) PSI.
+into Traditional (only the parties holding the sets participate) and Delegated (blinded sets are sent to a third server that aids in computing the intersection ~\cite{chakraborti_distance-aware_nodate}) PSI.
 The second method is concerned with how strict result matching is. In this regard, the two categories are 
-Classical (matching is done based on strict equality) and Fuzzy PSI (matching is done based on an exact match plus values that are within a specified similarity threshold).
+Classical (matching is done based on strict equality) and Fuzzy PSI (matching is done based on an exact match plus values that are within a specified similarity threshold as mentionez by ~\cite{uzun_fuzzy_nodate}).
 In the rest of this section I will present what characterizes each of these categories and give relevant examples of algorithms.
 \subsection{Traditional PSI}
 Traditional PSI is defined by the fact that the only parties involved in the computation of intersections are the client and the server. 
@@ -132,6 +132,8 @@ deliver a working, tested and documented product.
   \item May - writing and revising of report
 \end{enumerate} 
 
-\section{References}
+\bibliographystyle{IEEEtran}
+\bibliography{references}
 
 \end{document}
+
