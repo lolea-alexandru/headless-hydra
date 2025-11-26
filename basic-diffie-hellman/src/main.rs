@@ -6,6 +6,9 @@ struct PsiParty {
     elements: HashSet<String> 
 }
 
+// Safe prime chosen for the implementation of this toy model
+const P: u64 = 23;
+
 fn main() {
     let alice_elements = ["Arthas", "Illidan", "Malfurion"];
     let bob_elements = ["Arthas", "Thrall", "Vol'jin"];
