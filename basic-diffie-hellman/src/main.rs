@@ -61,7 +61,7 @@ impl PsiParty {
         }).collect()
     }
 
-    fn process_peer_elements(&self, peer_blinded_elements: Vec<u64>) -> Vec<u64> {
+    fn process_peer_elements(&self, peer_blinded_elements: &[u64]) -> Vec<u64> {
         peer_blinded_elements.iter().map(|&el| {
             return modulus_pow(el, self.secret_key, P)
         }).collect()
@@ -73,8 +73,8 @@ const P: u64 = 65519;
 
 
 fn main() {
-    let alice_elements = ["Litch King", "Thrall", "Malfurion"];
-    let bob_elements = ["Arthas", "Thrall", "Vol'jin"];
+    let alice_elements = ["x", "y", "z"];
+    let bob_elements = ["x_1", "y", "z"];
 
     let mut alice   = PsiParty::new(
         String::from("Alice"),
@@ -93,12 +93,16 @@ fn main() {
     let alice_blinded = alice.process_elements();
     let bob_blinded = bob.process_elements();
 
-    let alice_final = alice.process_peer_elements(bob_blinded);
-    let bob_final = bob.process_peer_elements(alice_blinded); 
+    let alice_final = alice.process_peer_elements(&bob_blinded);
+    let bob_final = bob.process_peer_elements(&alice_blinded); 
 
     let alice_lookup: Vec<u64> = alice_final.into_iter().collect();
 
-    let intersection: Vec<u64> = bob_final.into_iter().filter(|el| alice_lookup.contains(el)).collect();
+    // let intersection: Vec<u64> = bob_final.into_iter().filter(|el| alice_lookup.contains(el)).collect();
 
-    println!("Bob is sending: {:?}", intersection);    
+    // We assume from now on that Alice is the one who needs to find the intersection
+    // In order to do this, she needs to keep a "log" of the elements with their original values before being blinded   
+
+    println!("Alice blinded {:?}", alice_blinded);
+    println!("Bob final {:?}", bob_final);
 }
