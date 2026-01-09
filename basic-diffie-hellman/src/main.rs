@@ -1,10 +1,11 @@
 use std::collections::HashSet;
+use std::collections::HashMap;
 use sha2::{Digest, Sha256};
 
 struct PsiParty {
     name: String,
     secret_key: u64,
-    elements: HashSet<String> 
+    elements: HashMap<String, u64> 
 }
 
 fn map_to_group(input: &str) -> u64 {
@@ -43,7 +44,7 @@ fn modulus_pow(mut base: u64, mut exp: u64, modulus: u64) -> u64 {
 }
 
 impl PsiParty {
-    fn new(name: String, secret_key: u64, elements: HashSet<String>) -> Self {
+    fn new(name: String, secret_key: u64, elements: HashMap<String, u64>) -> Self {
         PsiParty {
             name,
             secret_key,
@@ -52,11 +53,15 @@ impl PsiParty {
     }
 
     fn process_elements(&self) -> Vec<u64> {
-        self.elements.iter().map(|el| {
+        self.elements.keys().map(|el| {
             // The primitive root
-            let g = map_to_group(el);
+            let g = map_to_group(&el);
             
             let g_exp_secret_key = modulus_pow(g, self.secret_key, P);
+
+            // Map the computed value (g^a mod p) into the map
+            self.elements.insert(el.clone(), g_exp_secret_key);
+
             return g_exp_secret_key;
         }).collect()
     }
@@ -79,13 +84,13 @@ fn main() {
     let mut alice   = PsiParty::new(
         String::from("Alice"),
         6,
-        HashSet::from(alice_elements.map(|str| String::from(str)))
+        HashMap::from(alice_elements.map(|str| (String::from(str),0)))
     );
 
     let mut bob = PsiParty::new(
         String::from("Bob"),
         3,
-        HashSet::from(bob_elements.map(|str| String::from(str)))
+        HashMap::from(bob_elements.map(|str| (String::from(str),0)))
     );
 
     println!("Welcome to the PSI demo build on top of Diffie-Hellman");
@@ -96,13 +101,14 @@ fn main() {
     let alice_final = alice.process_peer_elements(&bob_blinded);
     let bob_final = bob.process_peer_elements(&alice_blinded); 
 
-    let alice_lookup: Vec<u64> = alice_final.into_iter().collect();
+    // let alice_lookup: Vec<u64> = alice_final.into_iter().collect();
 
     // let intersection: Vec<u64> = bob_final.into_iter().filter(|el| alice_lookup.contains(el)).collect();
 
     // We assume from now on that Alice is the one who needs to find the intersection
     // In order to do this, she needs to keep a "log" of the elements with their original values before being blinded   
+    // However, this will not work due to the fact that a HashMap introduces randomness
 
-    println!("Alice blinded {:?}", alice_blinded);
+    println!("Alice blinded {:?}", alice_final);
     println!("Bob final {:?}", bob_final);
 }
