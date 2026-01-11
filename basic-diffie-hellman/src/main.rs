@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::collections::HashMap;
 use sha2::{Digest, Sha256};
 
@@ -52,18 +51,21 @@ impl PsiParty {
         }
     }
 
-    fn process_elements(&self) -> Vec<u64> {
-        self.elements.keys().map(|el| {
+    fn process_elements(&mut self) -> Vec<u64> {
+        let mut blinded_values = Vec::new();
+
+        for (key, value) in self.elements.iter_mut() {
             // The primitive root
-            let g = map_to_group(&el);
-            
+            let g = map_to_group(&key);
+
             let g_exp_secret_key = modulus_pow(g, self.secret_key, P);
+            
+            blinded_values.push(g_exp_secret_key);
 
-            // Map the computed value (g^a mod p) into the map
-            self.elements.insert(el.clone(), g_exp_secret_key);
+            *value = g_exp_secret_key;
+        }
 
-            return g_exp_secret_key;
-        }).collect()
+        return blinded_values;
     }
 
     fn process_peer_elements(&self, peer_blinded_elements: &[u64]) -> Vec<u64> {
@@ -98,8 +100,8 @@ fn main() {
     let alice_blinded = alice.process_elements();
     let bob_blinded = bob.process_elements();
 
-    let alice_final = alice.process_peer_elements(&bob_blinded);
-    let bob_final = bob.process_peer_elements(&alice_blinded); 
+    // let alice_final = alice.process_peer_elements(&bob_blinded);
+    // let bob_final = bob.process_peer_elements(&alice_blinded); 
 
     // let alice_lookup: Vec<u64> = alice_final.into_iter().collect();
 
@@ -109,6 +111,11 @@ fn main() {
     // In order to do this, she needs to keep a "log" of the elements with their original values before being blinded   
     // However, this will not work due to the fact that a HashMap introduces randomness
 
-    println!("Alice blinded {:?}", alice_final);
-    println!("Bob final {:?}", bob_final);
+    println!("Alice blinded {:?}", alice_blinded);
+    println!("Bob blinded {:?}", bob_blinded);
+
+    println!();
+
+    println!("Alice map {:?}", alice.elements);
+    println!("Bob map {:?}", bob.elements);
 }
