@@ -68,10 +68,8 @@ impl PsiParty {
         return blinded_values;
     }
 
-    fn process_peer_elements(&self, peer_blinded_elements: &[u64]) -> Vec<u64> {
-        peer_blinded_elements.iter().map(|&el| {
-            return modulus_pow(el, self.secret_key, P)
-        }).collect()
+    fn process_peer_element(&self, peer_blinded_element: u64) -> u64 {
+        return modulus_pow(peer_blinded_element, self.secret_key, P);
     }
 }
 
@@ -100,8 +98,14 @@ fn main() {
     let alice_blinded = alice.process_elements();
     let bob_blinded = bob.process_elements();
 
-    // let alice_final = alice.process_peer_elements(&bob_blinded);
-    // let bob_final = bob.process_peer_elements(&alice_blinded); 
+    
+    for (_key, value) in bob.elements.iter_mut() {
+        *value = alice.process_peer_element(*value);
+    }
+
+    for (_key, value) in alice.elements.iter_mut() {
+        *value = bob.process_peer_element(*value);
+    }
 
     // let alice_lookup: Vec<u64> = alice_final.into_iter().collect();
 
