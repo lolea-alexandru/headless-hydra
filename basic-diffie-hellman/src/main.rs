@@ -79,7 +79,7 @@ const P: u64 = 65519;
 
 fn main() {
     let alice_elements = ["x", "y", "z"];
-    let bob_elements = ["x_1", "y", "z"];
+    let bob_elements = ["x", "y ", "z"];
 
     let mut alice   = PsiParty::new(
         String::from("Alice"),
@@ -98,7 +98,7 @@ fn main() {
     let alice_blinded = alice.process_elements();
     let bob_blinded = bob.process_elements();
 
-    
+    // ! Does this put Alice's/Bob's PK at risk?
     for (_key, value) in bob.elements.iter_mut() {
         *value = alice.process_peer_element(*value);
     }
@@ -107,19 +107,22 @@ fn main() {
         *value = bob.process_peer_element(*value);
     }
 
-    // let alice_lookup: Vec<u64> = alice_final.into_iter().collect();
+    let alice_lookup: Vec<&u64> = alice.elements.values().collect();
 
-    // let intersection: Vec<u64> = bob_final.into_iter().filter(|el| alice_lookup.contains(el)).collect();
+    let intersection_values: Vec<u64> = bob.elements.values().filter(|el| alice_lookup.contains(el)).map(|ref_val| *ref_val).collect();
+    
+    let mut common_keys: Vec<String> = Vec::new();
+
+    for (key, value) in alice.elements {
+        if intersection_values.contains(&value) {
+            common_keys.push(key);
+        }
+    }
+
+    println!("The intersection is {:?}", common_keys);
 
     // We assume from now on that Alice is the one who needs to find the intersection
     // In order to do this, she needs to keep a "log" of the elements with their original values before being blinded   
-    // However, this will not work due to the fact that a HashMap introduces randomness
+    // However, this will not work due to the fact that a HashSet introduces randomness
 
-    println!("Alice blinded {:?}", alice_blinded);
-    println!("Bob blinded {:?}", bob_blinded);
-
-    println!();
-
-    println!("Alice map {:?}", alice.elements);
-    println!("Bob map {:?}", bob.elements);
 }
