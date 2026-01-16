@@ -1,5 +1,7 @@
+use rand::{Rng, SeedableRng, rngs::StdRng};
+
 fn main() {
-    println!("Welcome to my first implementation of interval intersection built on top of PSI")
+    println!("Welcome to my first implementation of interval intersection built on top of PSI");
 
     // This first version of the algorithm will follow these steps: 
     // 1. Generate secret key
@@ -9,4 +11,11 @@ fn main() {
 
     // Assumptions:
     // 1. The intervals of each party are not overlapping
+
+    /* =========================== STEP 1 =========================== */
+    let mut rng = StdRng::from_os_rng();
+
+    let number: u32 = rng.random();
+
+    print!("The random generated number is: {:?}", number);
 }
