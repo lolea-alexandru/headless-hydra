@@ -1,4 +1,4 @@
-# Primitives
+# Primitive Options
 
 1. Fully Homomorphic Encryption
 2. Order-Preserving Encryption (OPE)
@@ -10,4 +10,9 @@ This section will detail the ways in which I have tried to implement interval in
 
 ## Experiment I: Order-Revealing Encryption
 
+Reference used: https://github.com/kevinlewi/fastore/blob/master
 ORE is a generalization of OPE => can be built to leak less information
+
+### I.1 Same Secret Key
+
+For the first phase of the experiment, we are going to assume that the same key is used by both parties to encrypt and decrypt the interval elements
