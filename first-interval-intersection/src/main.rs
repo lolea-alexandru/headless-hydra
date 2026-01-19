@@ -14,7 +14,11 @@ fn ore_encrypt(ore_key: u128, plaintext: u32) -> [u8; 32] {
     let mut cyphertext = [0u8; 32];
 
     // Go through every bit of the plaintext
+    for i in 0..32 {
+        println!("The {:?}'th bit is: {:?}", i + 1, cyphertext[i]);
 
+        // We are using 32-bit values. In order to get the ith bit 
+    }
 
     return cyphertext;
 }
@@ -37,5 +41,5 @@ fn main() {
     let plaintext_test = 42;
     let encrypted_test = ore_encrypt(ore_key, plaintext_test);
 
-    print!("The ORE secret key is: {:?}", encrypted_test);
+    print!("The cyphertext is: {:?}", encrypted_test);
 }
