@@ -13,6 +13,6 @@ This section will detail the ways in which I have tried to implement interval in
 Reference used: https://github.com/kevinlewi/fastore/blob/master
 ORE is a generalization of OPE => can be built to leak less information
 
-### I.1 Same Secret Key
+### I.1 Symmetric Encryption
 
 For the first phase of the experiment, we are going to assume that the same key is used by both parties to encrypt and decrypt the interval elements
