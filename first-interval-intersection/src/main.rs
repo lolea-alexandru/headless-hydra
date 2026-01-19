@@ -19,11 +19,6 @@ fn ore_encrypt(ore_key: u128, plaintext: u32) -> [u8; 32] {
     return cyphertext;
 }
 
-/// Blinds the plaintext using AES with the ore_key as its key
-fn secure_prf(ore_key: u128, plaintext_tuple: (u8, Vec<u8>)) {
-
-}
-
 fn main() {
     println!("Welcome to my first implementation of interval intersection built on top of PSI");
 
