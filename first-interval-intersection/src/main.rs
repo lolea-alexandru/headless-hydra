@@ -1,6 +1,3 @@
-use std::result;
-
-use num_bigint::BigUint;
 use rand::{Rng, SeedableRng, rngs::StdRng};
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
@@ -97,9 +94,10 @@ fn main() {
 
     let plaintext_test = 42;
     let encrypted_test = ore_encrypt(ore_key, plaintext_test);
-    let test_2 = ore_encrypt(ore_key, 42);
-
-    
+    let test_2 = ore_encrypt(ore_key, 41);
 
     // print!("The cyphertext is: {:?}", encrypted_test);
+
+    let alice_intervals: [(u32, u32); 3] = [(1, 5), (6, 7), (9, 12)];
+    let bob_intervals: [(u32, u32); 3] = [(2, 4), (6, 8), (10, 11)];
 }
