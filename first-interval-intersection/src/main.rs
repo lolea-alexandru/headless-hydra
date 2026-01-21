@@ -41,10 +41,7 @@ fn ore_encrypt(ore_key: u128, plaintext: u32) -> [u8; 32] {
             }
         }
 
-        println!("The {:?}'th plaintext_fraction is: {:?}", i + 1, format!("{:032b}", plaintext_fraction));
-        
         let prf_result = prf(ore_key, i as u8,plaintext_fraction);
-        println!("The PRF result is: {:?}", prf_result);
 
         cyphertext[i as usize] = (prf_result + i_th_bit) % M as u8;
         
@@ -102,6 +99,7 @@ fn main() {
     let encrypted_test = ore_encrypt(ore_key, plaintext_test);
     let test_2 = ore_encrypt(ore_key, 42);
 
+    
 
     // print!("The cyphertext is: {:?}", encrypted_test);
 }
