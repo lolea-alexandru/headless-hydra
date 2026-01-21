@@ -1,6 +1,13 @@
-use rand::{Rng, SeedableRng, rngs::StdRng};
+use std::result;
 
-const M: u8 = 3;
+use num_bigint::BigUint;
+use rand::{Rng, SeedableRng, rngs::StdRng};
+use hmac::{Hmac, Mac};
+use sha2::Sha256;
+
+type HmacSha256 = Hmac<Sha256>;
+
+const M: u32 = 3;
 
 /// Generates a 128-bit secret key
 fn ore_setup() -> u128 {
@@ -35,8 +42,11 @@ fn ore_encrypt(ore_key: u128, plaintext: u32) -> [u8; 32] {
         }
 
         println!("The {:?}'th plaintext_fraction is: {:?}", i + 1, format!("{:032b}", plaintext_fraction));
+        
+        let prf_result = prf(ore_key, i as u8,plaintext_fraction);
+        println!("The PRF result is: {:?}", prf_result);
 
-        cyphertext[i as usize] = (F(ore_key, i as u8,plaintext_fraction) + i_th_bit) % M;
+        cyphertext[i as usize] = (prf_result + i_th_bit) % M as u8;
         
         // We are using 32-bit values. In order to get the ith bit 
     }
@@ -44,8 +54,33 @@ fn ore_encrypt(ore_key: u128, plaintext: u32) -> [u8; 32] {
     return cyphertext;
 }
 
-fn F(ore_key: u128, corresponding_bit: u8,plaintext_fraction: u32) -> u8 {
-    return 0;
+fn prf(ore_key: u128, corresponding_bit: u8,plaintext_fraction: u32) -> u8 {
+    // Convert the key into byte array
+    let ore_key_bytes = ore_key.to_be_bytes();
+
+    // Convert the input into byte arrays (pieces)
+    let corresponding_bit_bytes = corresponding_bit.to_be_bytes();
+    let separator = b"|";
+    let plaintext_fraction_bytes = plaintext_fraction.to_be_bytes();
+
+    // Create the MAC = Message Authentication Code
+    let mut mac = HmacSha256::new_from_slice(&ore_key_bytes).expect("Something went wrong at creating the MAC");
+
+
+    // Add the input to the MAC
+    mac.update(&corresponding_bit_bytes);
+    mac.update(separator);
+    mac.update(&plaintext_fraction_bytes);
+
+    // Compute the result (take only the first 32 bits)
+    let result = mac.finalize().into_bytes();
+    let first_4_bytes: [u8; 4] = result[0..4].try_into().expect("Something went wrong while retrieving the first 4 bits");
+    let hash_32_bits = u32::from_be_bytes(first_4_bytes);
+
+    // compute the modulus
+    let remainder = hash_32_bits % M;
+
+    return remainder as u8;
 }
 
 fn main() {
@@ -65,5 +100,8 @@ fn main() {
 
     let plaintext_test = 42;
     let encrypted_test = ore_encrypt(ore_key, plaintext_test);
+    let test_2 = ore_encrypt(ore_key, 42);
+
+
     // print!("The cyphertext is: {:?}", encrypted_test);
 }
