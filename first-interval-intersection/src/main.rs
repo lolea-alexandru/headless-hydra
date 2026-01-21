@@ -48,6 +48,16 @@ fn ore_encrypt(ore_key: u128, plaintext: u32) -> [u8; 32] {
     return cyphertext;
 }
 
+// Returns:
+// 0
+fn ore_compare(ct_1: [u8; 32], ct_2: [u8; 32]) -> i8 {
+    for i in 0..32 {
+        if ct_1[i] > ct_2[i] {return 1;}
+        if ct_1[i] < ct_2[i] {return -1;}
+    }
+    return 0;
+}
+
 fn prf(ore_key: u128, corresponding_bit: u8,plaintext_fraction: u32) -> u8 {
     // Convert the key into byte array
     let ore_key_bytes = ore_key.to_be_bytes();
