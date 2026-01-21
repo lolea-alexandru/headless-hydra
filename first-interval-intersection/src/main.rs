@@ -15,12 +15,26 @@ fn ore_encrypt(ore_key: u128, plaintext: u32) -> [u8; 32] {
 
     // Go through every bit of the plaintext
     for i in 0..32 {
-        println!("The {:?}'th bit is: {:?}", i + 1, cyphertext[i]);
+        // What ends up as a parameter, alongside the key, to the PRF (HMAC_SHA256)
+        let mut crf_feed: u32 = 0;
+        let i_th_bit;
 
+        // ========= COMPUTE BIT IN POSITION i ========= //
+        let one_in_first_pos: u32 = 1 << 31;
+        i_th_bit = ((plaintext & (one_in_first_pos >> i)) != 0) as u8;
+
+        cyphertext[i] = (F(ore_key, i as u8,crf_feed) + i_th_bit) % M;
+        
+        println!("The {:?}'th bit is: {:?}", i + 1, i_th_bit);
+        
         // We are using 32-bit values. In order to get the ith bit 
     }
 
     return cyphertext;
+}
+
+fn F(ore_key: u128, corresponding_bit: u8,plaintext_fraction: u32) -> u8 {
+    return 0;
 }
 
 fn main() {
@@ -40,6 +54,5 @@ fn main() {
 
     let plaintext_test = 42;
     let encrypted_test = ore_encrypt(ore_key, plaintext_test);
-
-    print!("The cyphertext is: {:?}", encrypted_test);
+    // print!("The cyphertext is: {:?}", encrypted_test);
 }
