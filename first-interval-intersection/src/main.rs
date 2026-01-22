@@ -1,5 +1,5 @@
 use rand::{Rng, SeedableRng, rngs::StdRng};
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, Mac, digest::typenum::int};
 use sha2::Sha256;
 
 type HmacSha256 = Hmac<Sha256>;
@@ -87,6 +87,30 @@ fn prf(ore_key: u128, corresponding_bit: u8,plaintext_fraction: u32) -> u8 {
     return remainder as u8;
 }
 
+fn compute_intersection(ore_key: u128, alice: (u32, u32), bob: (u32, u32)) -> ([u8; 32], [u8; 32]) {
+    // Compute encrypted interval beginnings
+    let alice_begining = ore_encrypt(ore_key, alice.0);
+    let bob_begining = ore_encrypt(ore_key, bob.0);
+
+    // Compute encryptes inverval ends
+    let alice_end = ore_encrypt(ore_key, alice.1);
+    let bob_end = ore_encrypt(ore_key, bob.1);
+
+    // Decide which beginning to choose
+    let mut beginning = alice_begining;
+    if ore_compare(alice_begining, bob_begining) == 1 {
+        beginning = bob_begining;
+    }
+
+    // Decide which end to choose
+    let mut end = alice_end;
+    if ore_compare(alice_end, bob_end) == -1 {
+        end = bob_end;
+    }
+
+    return (beginning, end);
+}
+
 fn main() {
     println!("Welcome to my first implementation of interval intersection built on top of PSI");
 
@@ -109,5 +133,29 @@ fn main() {
     // print!("The cyphertext is: {:?}", encrypted_test);
 
     let alice_intervals: [(u32, u32); 3] = [(1, 5), (6, 7), (9, 12)];
-    let bob_intervals: [(u32, u32); 3] = [(2, 4), (6, 8), (10, 11)];
+    let bob_intervals: [(u32, u32); 1] = [(2, 4)];
+
+    // Go through Alice and Bob's intervals
+    let mut intersection: Vec<([u8; 32], [u8; 32])> = Vec::new();
+    
+    let mut current_bob = 0;
+    for alice in 0..3 {
+        for bob in current_bob..1 {
+            // Check if Bob is too far
+            if bob_intervals[bob].0 > alice_intervals[alice].1 {
+                current_bob = bob; 
+                break;
+            }
+            
+            // Check if Alice is too far
+            if alice_intervals[alice].0 > bob_intervals[bob].1 {
+                break;
+            }
+            
+            // Determine intersection
+            intersection.push(compute_intersection(ore_key, alice_intervals[alice], bob_intervals[bob]));
+        }
+    }
+
+    println!("The intersection is: {:?}", intersection);
 }
