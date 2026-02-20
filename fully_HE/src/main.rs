@@ -6,21 +6,20 @@ use tfhe::{ConfigBuilder, generate_keys, set_server_key, FheUint8};
 
 struct PsiParty {
     name: String,
-    encryption_key: ClientKey,
     intervals: HashSet<Interval>
 }
 
 impl PsiParty {
-    fn new(name: String, encryption_key: ClientKey) -> Self {
-        PsiParty { name, intervals: HashSet::new(), encryption_key }
+    fn new(name: String) -> Self {
+        PsiParty { name, intervals: HashSet::new()}
     }
 
-    fn add_interval(&mut self, lower: u8, upper: u8) {
-        self.intervals.insert(Interval { lower, upper });
+    fn add_interval(&mut self, bounds: (u8, u8)) {
+        self.intervals.insert(Interval { lower: bounds.0, upper: bounds.1 });
     }
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Debug)]
 struct Interval {
     lower: u8,
     upper: u8,
@@ -30,7 +29,19 @@ impl Interval {
     fn new(lower: u8, upper: u8) -> Self {
         Interval { lower, upper }
     }
+
+    fn encrypt_interval(&self, encryption_key: &ClientKey) -> (FheUint8,FheUint8) {
+        let encrypted_lower = FheUint8::encrypt(self.lower, encryption_key); 
+        let encrypted_upper = FheUint8::encrypt(self.upper, encryption_key); 
+
+        return (encrypted_lower, encrypted_upper);
+    }
 }
+
+//? This example is baased on the fact that the intervals are ordered 
+//? in ASC order, with regards to the lower bound
+
+//? At the same time, we are assuming non-overlaping intervals
 
 fn main() {
     /* ======================== INITALIZE FHE SCHEMA  ======================== */
@@ -41,21 +52,25 @@ fn main() {
     set_server_key(server_key);
     
     /* ======================== CREATE THE INTERVALS ======================== */
+    let mut sender = PsiParty::new(String::from("Sender"));
+    let mut receiver = PsiParty::new(String::from("Receiver"));
+    
+    let sender_intervals: [(u8,u8); 3] = [(2,3), (5,6), (12, 15)];
+    let receiver_intervals: [(u8,u8);2] = [(2,6), (13,14)];
 
-    let clear_a = 7u8;
-    let clear_b= 128u8;
+    // Add the intervals to the correct psi party
+    for i in 0..sender_intervals.len() {
+        sender.add_interval(sender_intervals[i]);
+    }
 
-    let a = FheUint8::encrypt(clear_a, &client_key);
-    let b = FheUint8::encrypt(clear_b, &client_key);
+    for i in 0..receiver_intervals.len() {
+        receiver.add_interval(receiver_intervals[i]);
+    }
+
+    // Encrypt the intervals
+    let encrypted_sender_intervals: Vec<(FheUint8, FheUint8)> = sender.intervals.iter().map(|interval| interval.encrypt_interval(&client_key)).collect();
+    let encrypted_receiver_intervals: Vec<(FheUint8, FheUint8)> = receiver.intervals.iter().map(|interval| interval.encrypt_interval(&client_key)).collect();
 
 
-    let result = a + b;
-
-    let decrypted_result: u8 = result.decrypt(&client_key);
-
-    let clear_result = clear_a + clear_b;
-
-    println!("The HE result is: {:?}", decrypted_result);
-    println!("The clear result is: {:?}", clear_result);
 }
 
