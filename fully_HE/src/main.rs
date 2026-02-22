@@ -6,16 +6,16 @@ use tfhe::{ConfigBuilder, generate_keys, set_server_key, FheUint8};
 
 struct PsiParty {
     name: String,
-    intervals: HashSet<Interval>
+    intervals: Vec<Interval>
 }
 
 impl PsiParty {
     fn new(name: String) -> Self {
-        PsiParty { name, intervals: HashSet::new()}
+        PsiParty { name, intervals: Vec::new()}
     }
 
     fn add_interval(&mut self, bounds: (u8, u8)) {
-        self.intervals.insert(Interval { lower: bounds.0, upper: bounds.1 });
+        self.intervals.push(Interval { lower: bounds.0, upper: bounds.1 });
     }
 }
 
@@ -43,6 +43,39 @@ impl Interval {
 
 //? At the same time, we are assuming non-overlaping intervals
 
+fn compare_encrypted_intervals(a: &(FheUint8,FheUint8), b: &(FheUint8,FheUint8), keys: &ClientKey) -> Option<(FheUint8, FheUint8)> {
+    //* Check if the two intervals intersect at all
+    let first_high_lower = a.1.lt(&b.0);
+    let second_high_lower = b.1.lt(&a.0);
+    if first_high_lower.decrypt(keys) || second_high_lower.decrypt(keys) {
+       return None; 
+    }
+
+    //* Compute intersection
+    let lower_bound;
+    let upper_bound;
+
+    // Check which of the lower bounds is largest
+    let left_low_smaller = a.0.lt(&b.0).decrypt(keys);
+    if left_low_smaller {
+        lower_bound = b.0.clone();
+    } else {
+        lower_bound = a.0.clone();
+    }
+
+    // Check which of the upper bounds is smallest
+    let left_high_larger = a.1.lt(&b.1).decrypt(keys);
+    if left_high_larger {
+        upper_bound = a.1.clone();
+    } else {
+        upper_bound = b.1.clone();
+    }
+
+
+    return Some((lower_bound, upper_bound));
+
+}
+
 fn main() {
     /* ======================== INITALIZE FHE SCHEMA  ======================== */
     let config = ConfigBuilder::default().build();
@@ -55,7 +88,7 @@ fn main() {
     let mut sender = PsiParty::new(String::from("Sender"));
     let mut receiver = PsiParty::new(String::from("Receiver"));
     
-    let sender_intervals: [(u8,u8); 3] = [(2,3), (5,6), (12, 15)];
+    let sender_intervals: [(u8,u8); 4] = [(2,3), (5,8), (6, 10) ,(12, 15)];
     let receiver_intervals: [(u8,u8);2] = [(2,6), (13,14)];
 
     // Add the intervals to the correct psi party
@@ -67,10 +100,13 @@ fn main() {
         receiver.add_interval(receiver_intervals[i]);
     }
 
+        
     // Encrypt the intervals
     let encrypted_sender_intervals: Vec<(FheUint8, FheUint8)> = sender.intervals.iter().map(|interval| interval.encrypt_interval(&client_key)).collect();
     let encrypted_receiver_intervals: Vec<(FheUint8, FheUint8)> = receiver.intervals.iter().map(|interval| interval.encrypt_interval(&client_key)).collect();
 
-
+        
+    
+   
 }
 
