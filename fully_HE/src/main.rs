@@ -38,7 +38,6 @@ impl Interval {
     }
 }
 
-//? This example is baased on the fact that the intervals are ordered 
 //? in ASC order, with regards to the lower bound
 
 //? At the same time, we are assuming non-overlaping intervals
@@ -88,8 +87,8 @@ fn main() {
     let mut sender = PsiParty::new(String::from("Sender"));
     let mut receiver = PsiParty::new(String::from("Receiver"));
     
-    let sender_intervals: [(u8,u8); 4] = [(2,3), (5,8), (6, 10) ,(12, 15)];
-    let receiver_intervals: [(u8,u8);2] = [(2,6), (13,14)];
+    let sender_intervals: [(u8,u8); 3] = [(2,3), (5,8) ,(12, 15)];
+    let receiver_intervals: [(u8,u8); 2] = [(2,6), (13,14)];
 
     // Add the intervals to the correct psi party
     for i in 0..sender_intervals.len() {
@@ -105,8 +104,24 @@ fn main() {
     let encrypted_sender_intervals: Vec<(FheUint8, FheUint8)> = sender.intervals.iter().map(|interval| interval.encrypt_interval(&client_key)).collect();
     let encrypted_receiver_intervals: Vec<(FheUint8, FheUint8)> = receiver.intervals.iter().map(|interval| interval.encrypt_interval(&client_key)).collect();
 
-        
     
+    let mut encrypted_intersections: Vec<(u8, u8)> = Vec::new(); 
+    
+    // Go through intervals 
+    for i in 0..encrypted_sender_intervals.len() {
+        for j in 0..encrypted_receiver_intervals.len() {
+            // Compute the intersection of the intervals
+            let result = compare_encrypted_intervals(&encrypted_sender_intervals[i], &encrypted_receiver_intervals[j], &client_key);
+        
+            // Pattern match in order to determine if there was an intersection or not
+            match result {
+                Some((a, b)) => encrypted_intersections.push((a.decrypt(&client_key), b.decrypt(&client_key))),
+                None => (),
+            }
+        }
+    }
+
+    println!("The encrypted is: {:?}", encrypted_intersections);
    
 }
 
