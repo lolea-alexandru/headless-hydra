@@ -79,7 +79,7 @@ const P: u64 = 65519;
 
 fn main() {
     let alice_elements = ["x", "y", "z"];
-    let bob_elements = ["x", "y ", "z"];
+    let bob_elements = ["x", "y", "z"];
 
     let mut alice   = PsiParty::new(
         String::from("Alice"),
