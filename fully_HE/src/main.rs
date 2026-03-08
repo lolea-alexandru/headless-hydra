@@ -1,8 +1,10 @@
-use std::collections::HashSet;
-
 /* ===================== IMPORTS ===================== */
 use tfhe::{ClientKey, prelude::*};
-use tfhe::{ConfigBuilder, generate_keys, set_server_key, FheUint8};
+use tfhe::{ConfigBuilder, generate_keys, set_server_key, FheUint8, FheUint16};
+use serde::{Serialize, Deserialize};
+use std::fs::{self, File};
+use std::io::BufReader;
+use std::time::Instant;
 
 struct PsiParty {
     name: String,
@@ -14,35 +16,33 @@ impl PsiParty {
         PsiParty { name, intervals: Vec::new()}
     }
 
-    fn add_interval(&mut self, bounds: (u8, u8)) {
-        self.intervals.push(Interval { lower: bounds.0, upper: bounds.1 });
+    fn add_interval(&mut self, interval: Interval) {
+        self.intervals.push(interval);
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Debug)]
+#[derive(PartialEq, Eq, Hash, Debug, Serialize, Deserialize, Clone, Copy)]
 struct Interval {
-    lower: u8,
-    upper: u8,
+    lower: u16,
+    upper: u16,
 }
 
 impl Interval {
-    fn new(lower: u8, upper: u8) -> Self {
+    fn new(lower: u16, upper: u16) -> Self {
         Interval { lower, upper }
     }
 
-    fn encrypt_interval(&self, encryption_key: &ClientKey) -> (FheUint8,FheUint8) {
-        let encrypted_lower = FheUint8::encrypt(self.lower, encryption_key); 
-        let encrypted_upper = FheUint8::encrypt(self.upper, encryption_key); 
+    fn encrypt_interval(&self, encryption_key: &ClientKey) -> (FheUint16,FheUint16) {
+        let encrypted_lower = FheUint16::encrypt(self.lower, encryption_key); 
+        let encrypted_upper = FheUint16::encrypt(self.upper, encryption_key); 
 
         return (encrypted_lower, encrypted_upper);
     }
 }
 
-//? in ASC order, with regards to the lower bound
-
 //? At the same time, we are assuming non-overlaping intervals
 
-fn compare_encrypted_intervals(a: &(FheUint8,FheUint8), b: &(FheUint8,FheUint8), keys: &ClientKey) -> Option<(FheUint8, FheUint8)> {
+fn compare_encrypted_intervals(a: &(FheUint16,FheUint16), b: &(FheUint16,FheUint16), keys: &ClientKey) -> Option<(FheUint16, FheUint16)> {
     //* Check if the two intervals intersect at all
     let first_high_lower = a.1.lt(&b.0);
     let second_high_lower = b.1.lt(&a.0);
@@ -76,6 +76,9 @@ fn compare_encrypted_intervals(a: &(FheUint8,FheUint8), b: &(FheUint8,FheUint8),
 }
 
 fn main() {
+    let startTime = Instant::now();
+
+    println!("{}", std::env::current_dir().unwrap().display());
     /* ======================== INITALIZE FHE SCHEMA  ======================== */
     let config = ConfigBuilder::default().build();
 
@@ -87,25 +90,32 @@ fn main() {
     let mut sender = PsiParty::new(String::from("Sender"));
     let mut receiver = PsiParty::new(String::from("Receiver"));
     
-    let sender_intervals: [(u8,u8); 3] = [(2,3), (5,8) ,(12, 15)];
-    let receiver_intervals: [(u8,u8); 2] = [(2,6), (13,14)];
+    // Retrieve the intervals from the JSON file
+    
+    let data = fs::read_to_string("src/intervals.json").expect("Should be able to open 'intervals.json' file");
+    let sender_intervals_json: Vec<Interval> = serde_json::from_str(&data).unwrap();
+    let receiver_intervals_json: Vec<Interval> = Vec::from([sender_intervals_json[0]]);
+
+    // TODO: remove -> from previous implementation
+    // let sender_intervals: [(u16,u16); 3] = [(2,3), (5,8) ,(12, 15)];
+    // let receiver_intervals: [(u16,u16); 2] = [(2,6), (13,14)];
 
     // Add the intervals to the correct psi party
-    for i in 0..sender_intervals.len() {
-        sender.add_interval(sender_intervals[i]);
+    for i in 0..sender_intervals_json.len() {
+        sender.add_interval(sender_intervals_json[i]);
     }
 
-    for i in 0..receiver_intervals.len() {
-        receiver.add_interval(receiver_intervals[i]);
+    for i in 0..receiver_intervals_json.len() {
+        receiver.add_interval(receiver_intervals_json[i]);
     }
 
         
     // Encrypt the intervals
-    let encrypted_sender_intervals: Vec<(FheUint8, FheUint8)> = sender.intervals.iter().map(|interval| interval.encrypt_interval(&client_key)).collect();
-    let encrypted_receiver_intervals: Vec<(FheUint8, FheUint8)> = receiver.intervals.iter().map(|interval| interval.encrypt_interval(&client_key)).collect();
+    let encrypted_sender_intervals: Vec<(FheUint16, FheUint16)> = sender.intervals.iter().map(|interval| interval.encrypt_interval(&client_key)).collect();
+    let encrypted_receiver_intervals: Vec<(FheUint16, FheUint16)> = receiver.intervals.iter().map(|interval| interval.encrypt_interval(&client_key)).collect();
 
     
-    let mut encrypted_intersections: Vec<(u8, u8)> = Vec::new(); 
+    let mut encrypted_intersections: Vec<(u16, u16)> = Vec::new(); 
     
     // Go through intervals 
     for i in 0..encrypted_sender_intervals.len() {
@@ -121,7 +131,9 @@ fn main() {
         }
     }
 
+    let duration = startTime.elapsed();
+
     println!("The encrypted is: {:?}", encrypted_intersections);
-   
+    println!("The intersection was computed in: {:?}", duration);
 }
 
