@@ -89,9 +89,6 @@ const P: u64 = 65519;
 fn main() {
     let startTime = Instant::now();
 
-    let alice_elements = ["x", "y", "z"];
-    let bob_elements = ["x", "y", "z"];
-
     let alice_interval_file: String = fs::read_to_string("src/intervals_1.json").expect("Should be able to open 'intervals_1.json' file");
     let bob_interval_file: String = fs::read_to_string("src/intervals_2.json").expect("Should be able to open 'intervals_2.json' file");
     let alice_intervals_json: Vec<Interval> = serde_json::from_str(&alice_interval_file).unwrap();
