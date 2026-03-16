@@ -3,7 +3,7 @@ use tfhe::{ClientKey, prelude::*};
 use tfhe::{ConfigBuilder, generate_keys, set_server_key, FheUint8, FheUint16};
 use serde::{Serialize, Deserialize};
 use std::fs::{self, File};
-use std::io::BufReader;
+use std::io::{BufReader, Write};
 use std::time::Instant;
 
 struct PsiParty {
@@ -92,9 +92,13 @@ fn main() {
     
     // Retrieve the intervals from the JSON file
     
-    let data = fs::read_to_string("src/intervals.json").expect("Should be able to open 'intervals.json' file");
-    let sender_intervals_json: Vec<Interval> = serde_json::from_str(&data).unwrap();
-    let receiver_intervals_json: Vec<Interval> = Vec::from([sender_intervals_json[0]]);
+    let first_interval_file: String = fs::read_to_string("src/intervals_1.json").expect("Should be able to open 'intervals_1.json' file");
+    let secon_interval_file: String = fs::read_to_string("src/intervals_2.json").expect("Should be able to open 'intervals_2.json' file");
+    let sender_intervals_json: Vec<Interval> = serde_json::from_str(&first_interval_file).unwrap();
+    let receiver_intervals_json: Vec<Interval> = serde_json::from_str(&secon_interval_file).unwrap();
+
+    println!("The size of the first set is: {:?}", sender_intervals_json.len());
+    println!("The size of the second set is: {:?}", receiver_intervals_json.len());
 
     // TODO: remove -> from previous implementation
     // let sender_intervals: [(u16,u16); 3] = [(2,3), (5,8) ,(12, 15)];
@@ -133,7 +137,12 @@ fn main() {
 
     let duration = startTime.elapsed();
 
-    println!("The encrypted is: {:?}", encrypted_intersections);
+    // Write the encryption results to a file
+    let json_encrypted_intersections = serde_json::to_string(&encrypted_intersections).unwrap();
+
+    let mut results_file = File::create("src/intersection_result.json").unwrap();
+    results_file.write_all(json_encrypted_intersections.as_bytes()).unwrap();
+
     println!("The intersection was computed in: {:?}", duration);
 }
 

@@ -1,7 +1,9 @@
 use rand::{Rng, SeedableRng, rngs::StdRng};
 use hmac::{Hmac, Mac, digest::typenum::int};
 use sha2::Sha256;
-
+use std::{fs::File, time::Instant, io::Write};
+use std::fs;
+use serde::{Serialize, Deserialize};
 type HmacSha256 = Hmac<Sha256>;
 
 const M: u32 = 3;
@@ -11,6 +13,12 @@ fn ore_setup() -> u128 {
     let mut rng = StdRng::from_os_rng();
 
     return rng.random();
+}
+
+#[derive(PartialEq, Eq, Hash, Debug, Serialize, Deserialize, Clone, Copy)]
+struct Interval {
+    lower: u32,
+    upper: u32,
 }
 
 /// Encrypts the 32-bit plaintext into an equally long cyphertext
@@ -87,7 +95,7 @@ fn prf(ore_key: u128, corresponding_bit: u8,plaintext_fraction: u32) -> u8 {
     return remainder as u8;
 }
 
-fn compute_intersection(ore_key: u128, alice: (u32, u32), bob: (u32, u32)) -> ([u8; 32], [u8; 32]) {
+fn compute_intersection_ore(ore_key: u128, alice: (u32, u32), bob: (u32, u32)) -> ([u8; 32], [u8; 32]) {
     // Compute encrypted interval beginnings
     let alice_begining = ore_encrypt(ore_key, alice.0);
     let bob_begining = ore_encrypt(ore_key, bob.0);
@@ -112,7 +120,7 @@ fn compute_intersection(ore_key: u128, alice: (u32, u32), bob: (u32, u32)) -> ([
 }
 
 fn main() {
-    println!("Welcome to my first implementation of interval intersection built on top of PSI");
+    let startTime = Instant::now();
 
     // This first version of the algorithm will follow these steps: 
     // 1. Generate ORE secret key
@@ -126,36 +134,39 @@ fn main() {
     /* =========================== STEP 1 =========================== */
     let ore_key = ore_setup();
 
-    let plaintext_test = 42;
-    let encrypted_test = ore_encrypt(ore_key, plaintext_test);
-    let test_2 = ore_encrypt(ore_key, 41);
+    let alice_interval_file: String = fs::read_to_string("src/intervals_1.json").expect("Should be able to open 'intervals_1.json' file");
+    let bob_interval_file: String = fs::read_to_string("src/intervals_2.json").expect("Should be able to open 'intervals_2.json' file");
+    let alice_intervals_json: Vec<Interval> = serde_json::from_str(&alice_interval_file).unwrap();
+    let bob_intervals_json: Vec<Interval> = serde_json::from_str(&bob_interval_file).unwrap();
+    
+    println!("The size of the first set is: {:?}", alice_intervals_json.len());
+    println!("The size of the second set is: {:?}", bob_intervals_json.len());
 
-    // print!("The cyphertext is: {:?}", encrypted_test);
-
-    let alice_intervals: [(u32, u32); 3] = [(1, 5), (6, 7), (9, 12)];
-    let bob_intervals: [(u32, u32); 1] = [(2, 4)];
 
     // Go through Alice and Bob's intervals
     let mut intersection: Vec<([u8; 32], [u8; 32])> = Vec::new();
     
-    let mut current_bob = 0;
-    for alice in 0..3 {
-        for bob in current_bob..1 {
+    for alice in 0..alice_intervals_json.len() {
+        for bob in 0..bob_intervals_json.len() {
             // Check if Bob is too far
-            if bob_intervals[bob].0 > alice_intervals[alice].1 {
-                current_bob = bob; 
+            if bob_intervals_json[bob].lower > alice_intervals_json[alice].upper {
                 break;
             }
             
             // Check if Alice is too far
-            if alice_intervals[alice].0 > bob_intervals[bob].1 {
+            if alice_intervals_json[alice].lower > bob_intervals_json[bob].upper {
                 break;
             }
             
             // Determine intersection
-            intersection.push(compute_intersection(ore_key, alice_intervals[alice], bob_intervals[bob]));
+            intersection.push(compute_intersection_ore(ore_key, (alice_intervals_json[alice].lower, alice_intervals_json[alice].upper), (bob_intervals_json[bob].lower, bob_intervals_json[bob].upper)));
         }
     }
+    let duration = startTime.elapsed();
+    let json_encrypted_intersections = serde_json::to_string(&intersection).unwrap();
 
-    println!("The intersection is: {:?}", intersection);
+    let mut results_file = File::create("src/intersection_result.json").unwrap();
+    results_file.write_all(json_encrypted_intersections.as_bytes()).unwrap();
+
+    println!("The intersection was computed in: {:?}", duration);
 }
