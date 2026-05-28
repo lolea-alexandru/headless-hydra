@@ -106,13 +106,13 @@ fn compute_intersection_ore(ore_key: u128, alice: (u32, u32), bob: (u32, u32)) -
 
     // Decide which beginning to choose
     let mut beginning = alice_begining;
-    if ore_compare(alice_begining, bob_begining) == 1 {
+    if ore_compare(alice_begining, bob_begining) == -1 {
         beginning = bob_begining;
     }
 
     // Decide which end to choose
     let mut end = alice_end;
-    if ore_compare(alice_end, bob_end) == -1 {
+    if ore_compare(alice_end, bob_end) == 1 {
         end = bob_end;
     }
 

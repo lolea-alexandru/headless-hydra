@@ -119,7 +119,7 @@ fn main() {
     let encrypted_receiver_intervals: Vec<(FheUint16, FheUint16)> = receiver.intervals.iter().map(|interval| interval.encrypt_interval(&client_key)).collect();
 
     
-    let mut encrypted_intersections: Vec<(u16, u16)> = Vec::new(); 
+    let mut intersections: Vec<(u16, u16)> = Vec::new(); 
     
     // Go through intervals 
     for i in 0..encrypted_sender_intervals.len() {
@@ -129,7 +129,7 @@ fn main() {
         
             // Pattern match in order to determine if there was an intersection or not
             match result {
-                Some((a, b)) => encrypted_intersections.push((a.decrypt(&client_key), b.decrypt(&client_key))),
+                Some((a, b)) => intersections.push((a.decrypt(&client_key), b.decrypt(&client_key))),
                 None => (),
             }
         }
@@ -138,10 +138,10 @@ fn main() {
     let duration = startTime.elapsed();
 
     // Write the encryption results to a file
-    let json_encrypted_intersections = serde_json::to_string(&encrypted_intersections).unwrap();
+    let json_intersections = serde_json::to_string(&intersections).unwrap();
 
     let mut results_file = File::create("src/intersection_result.json").unwrap();
-    results_file.write_all(json_encrypted_intersections.as_bytes()).unwrap();
+    results_file.write_all(json_intersections.as_bytes()).unwrap();
 
     println!("The intersection was computed in: {:?}", duration);
 }

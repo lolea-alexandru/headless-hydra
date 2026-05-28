@@ -33,22 +33,19 @@ fn map_to_group(input: &u32) -> u64 {
 }
 
 fn modulus_pow(mut base: u64, mut exp: u64, modulus: u64) -> u64 {
-    if modulus == 1 {return 0;}
-
-    let mut result = 1;
-    base = base % modulus;
-    
-    // Algorithm taken from https://en.wikipedia.org/wiki/Modular_exponentiation
+    if modulus == 1 {
+        return 0;
+    }
+    let mut result: u64 = 1;
+    base %= modulus;
     while exp > 0 {
-        if exp % 2 == 1 {
-            result = (result * base) % modulus;
+        if exp & 1 == 1 {
+            result = ((result as u128 * base as u128) % modulus as u128) as u64;
         }
-
-        base = (base * base) % modulus;
-        exp = exp / 2;
-    }   
-
-    return result;
+        exp >>= 1;
+        base = ((base as u128 * base as u128) % modulus as u128) as u64;
+    }
+    result
 }
 
 impl PsiParty {
@@ -83,8 +80,11 @@ impl PsiParty {
 }
 
 // Safe prime chosen for the implementation of this toy model
-const P: u64 = 65519;
-
+const P: u64 = 4294967387;
+const AliceSecret: u64 = 6;
+const BobSecret: u64 = 3;
+// IMPORTANT: if you change P, you MUST recompute these factors.
+const P_MINUS_1_FACTORS: [u64; 2] = [2, 2147483693];
 
 fn main() {
     let startTime = Instant::now();
@@ -114,13 +114,13 @@ fn main() {
 
             let mut alice   = PsiParty::new(
                 String::from("Alice"),
-                6,
+                AliceSecret,
                 alice_elements
             );
         
             let mut bob = PsiParty::new(
                 String::from("Bob"),
-                3,
+                BobSecret,
                 bob_elements
             );
         
