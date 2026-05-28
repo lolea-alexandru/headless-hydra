@@ -16,21 +16,56 @@ struct Interval {
     upper: u32,
 }
 
-fn map_to_group(input: &u32) -> u64 {
-    let hash = Sha256::digest(input.to_be_bytes());
-    
-    // Retrieve the first eight bytes of the hash 
-    // We retrieve only 8 because this toy model uses u64, which means 64b = 8B
-    let first_eight_bytes: [u8; 8] = hash[0..8].try_into().expect("Something went wrong");
-    let number = u64::from_be_bytes(first_eight_bytes);
-
-    let mapped_val = number % P;
-
-    if mapped_val == 0  {
-        return 1;
+/// True iff `g` is a primitive root modulo P.
+///
+/// g is a primitive root iff, for every distinct prime factor q of (P-1),
+///   g^((P-1)/q) mod P != 1.
+fn is_primitive_root(g: u64) -> bool {
+    // Trivial small-order elements can never be primitive roots.
+    if g <= 1 || g == P - 1 {
+        return false;
     }
-    return mapped_val;
+    let phi = P - 1;
+    for &q in P_MINUS_1_FACTORS.iter() {
+        if modulus_pow(g, phi / q, P) == 1 {
+            return false;
+        }
+    }
+    return true;
 }
+
+/// Maps an input value deterministically to a primitive root modulo P.
+///
+/// Hashes (input || counter); if the candidate (mod P) is not a primitive
+/// root, it increments the counter and re-hashes until one is found.
+///
+/// Determinism guarantee: the same `input` always yields the same returned
+/// primitive root, so two parties hashing a shared element agree on g.
+fn map_to_group(input: &u32) -> u64 {
+    let mut counter: u64 = 0;
+
+    loop {
+        let mut hasher = Sha256::new();
+        hasher.update(input.to_be_bytes());
+        hasher.update(counter.to_be_bytes());
+        let hash = hasher.finalize();
+
+        // Take the first 8 bytes -> u64. SHA-256 is 32 bytes, so this is safe.
+        let first_eight: [u8; 8] = hash[0..8]
+            .try_into()
+            .expect("SHA-256 digest is always >= 8 bytes");
+        let number = u64::from_be_bytes(first_eight);
+
+        let candidate = number % P;
+
+        if is_primitive_root(candidate) {
+            return candidate;
+        }
+
+        counter += 1;
+    }
+}
+
 
 fn modulus_pow(mut base: u64, mut exp: u64, modulus: u64) -> u64 {
     if modulus == 1 {
