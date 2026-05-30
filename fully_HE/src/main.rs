@@ -42,37 +42,18 @@ impl Interval {
 
 //? At the same time, we are assuming non-overlaping intervals
 
-fn compare_encrypted_intervals(a: &(FheUint16,FheUint16), b: &(FheUint16,FheUint16), keys: &ClientKey) -> Option<(FheUint16, FheUint16)> {
+fn compare_encrypted_intervals(a: &(FheUint16,FheUint16), b: &(FheUint16,FheUint16)) -> (FheUint16, FheUint16) {
     //* Check if the two intervals intersect at all
-    let first_high_lower = a.1.lt(&b.0);
-    let second_high_lower = b.1.lt(&a.0);
-    if first_high_lower.decrypt(keys) || second_high_lower.decrypt(keys) {
-       return None; 
-    }
+    let start_A_lower_B_start = a.0.le(&b.1);
+    let end_A_greater_B_start = a.1.ge(&b.0);
+
+    let both_are_true = start_A_lower_B_start & end_A_greater_B_start;
 
     //* Compute intersection
-    let lower_bound;
-    let upper_bound;
+    let lower_bound = a.0.max(&b.0);
+    let upper_bound = a.1.min(&b.1);
 
-    // Check which of the lower bounds is largest
-    let left_low_smaller = a.0.lt(&b.0).decrypt(keys);
-    if left_low_smaller {
-        lower_bound = b.0.clone();
-    } else {
-        lower_bound = a.0.clone();
-    }
-
-    // Check which of the upper bounds is smallest
-    let left_high_larger = a.1.lt(&b.1).decrypt(keys);
-    if left_high_larger {
-        upper_bound = a.1.clone();
-    } else {
-        upper_bound = b.1.clone();
-    }
-
-
-    return Some((lower_bound, upper_bound));
-
+    return (lower_bound, upper_bound);
 }
 
 fn main() {
@@ -125,12 +106,13 @@ fn main() {
     for i in 0..encrypted_sender_intervals.len() {
         for j in 0..encrypted_receiver_intervals.len() {
             // Compute the intersection of the intervals
-            let result = compare_encrypted_intervals(&encrypted_sender_intervals[i], &encrypted_receiver_intervals[j], &client_key);
-        
+            let (left, right) = compare_encrypted_intervals(&encrypted_sender_intervals[i], &encrypted_receiver_intervals[j]);
+            
+            let decrypted_left = left.decrypt(&client_key);
+            let decrypted_right = right.decrypt(&client_key);
             // Pattern match in order to determine if there was an intersection or not
-            match result {
-                Some((a, b)) => intersections.push((a.decrypt(&client_key), b.decrypt(&client_key))),
-                None => (),
+            if decrypted_left <= decrypted_right {
+                intersections.push((decrypted_left, decrypted_right));
             }
         }
     }

@@ -182,7 +182,14 @@ fn main() {
                     common_keys.push(key);
                 }
             }
-        }
+
+            if !common_keys.is_empty() {
+                final_intersection.push(Interval {
+                    lower: *common_keys.iter().min().unwrap(),
+                    upper: *common_keys.iter().max().unwrap(),
+                });
+            }    
+        }    
     }
 
     let duration = startTime.elapsed();
