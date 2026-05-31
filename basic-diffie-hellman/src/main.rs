@@ -127,9 +127,9 @@ const P_MINUS_1_FACTORS: [u64; 2] = [2, 2147483693];
 
 // CSV writing 
 const SCALE_ROOT: &str = "src/scaleExperiments";
-const MODES: [&str; 3] = ["shuffled", "sorted", "natural"];
-const N_VALUES: [u32; 2] = [10, 20];
-const RUNS_PER_CONFIG: usize = 3;
+const MODES: [&str; 2] = ["shuffled", "sorted"];
+const N_VALUES: [u32; 1] = [10];
+const RUNS_PER_CONFIG: usize = 1;
 
 // ---- Helpers for loading config files ----
 
@@ -220,7 +220,7 @@ fn main() {
             let intervals_path = config_dir.join("intervals_1.json");
 
             let interval_1 = match load_intervals(&intervals_path) {
-                Ok(v) => v,
+                Ok(v) => vec![v[0]],
                 Err(e) => {
                     eprintln!("  [n={}] FAILED to load: {}", n, e);
                     continue;
