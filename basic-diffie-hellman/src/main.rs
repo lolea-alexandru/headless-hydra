@@ -3,7 +3,11 @@ use sha2::{Digest, Sha256};
 use serde::{Serialize, Deserialize};
 use std::{fs::File, time::Instant, io::Write};
 use std::fs;
+use std::path::Path;
 
+// We assume from now on that Alice is the one who needs to find the intersection
+// In order to do this, she needs to keep a "log" of the elements with their original values before being blinded   
+// However, this will not work due to the fact that a HashSet introduces randomness
 struct PsiParty {
     name: String,
     secret_key: u64,
@@ -121,22 +125,30 @@ const BobSecret: u64 = 3;
 // IMPORTANT: if you change P, you MUST recompute these factors.
 const P_MINUS_1_FACTORS: [u64; 2] = [2, 2147483693];
 
-fn main() {
+// CSV writing 
+const SCALE_ROOT: &str = "src/scaleExperiments";
+const MODES: [&str; 3] = ["shuffled", "sorted", "natural"];
+const N_VALUES: [u32; 2] = [10, 20];
+const RUNS_PER_CONFIG: usize = 3;
+
+// ---- Helpers for loading config files ----
+
+fn load_intervals(path: &Path) -> Result<Vec<Interval>, String> {
+    let text = fs::read_to_string(path)
+        .map_err(|e| format!("Reading {:?}: {}", path, e))?;
+    serde_json::from_str(&text)
+        .map_err(|e| format!("Parsing {:?}: {}", path, e))
+}
+
+fn run_psi(interval_1: &[Interval], interval_2: &[Interval]) -> u64 {
     let startTime = Instant::now();
-
-    let alice_interval_file: String = fs::read_to_string("src/intervals_1.json").expect("Should be able to open 'intervals_1.json' file");
-    let bob_interval_file: String = fs::read_to_string("src/intervals_2.json").expect("Should be able to open 'intervals_2.json' file");
-    let alice_intervals_json: Vec<Interval> = serde_json::from_str(&alice_interval_file).unwrap();
-    let bob_intervals_json: Vec<Interval> = serde_json::from_str(&bob_interval_file).unwrap();
-    
-    println!("The size of the first set is: {:?}", alice_intervals_json.len());
-    println!("The size of the second set is: {:?}", bob_intervals_json.len());
-
+     let mut intersection_final: Vec<Interval> = Vec::new();
     // Go through every interval, expand it and then compute the intersections
-    for alice_i in 0..alice_intervals_json.len() {
-        for bob_i in 0..bob_intervals_json.len() {
-            let alice_current_interval: Interval = alice_intervals_json[alice_i];
-            let bob_current_interval: Interval = bob_intervals_json[bob_i];
+
+    for alice_i in 0..interval_1.len() {
+        for bob_i in 0..interval_2.len() {
+            let alice_current_interval: Interval = interval_1[alice_i];
+            let bob_current_interval: Interval = interval_2[bob_i];
             
             let mut alice_elements = HashMap::new();
             let mut bob_elements = HashMap::new();
@@ -184,7 +196,7 @@ fn main() {
             }
 
             if !common_keys.is_empty() {
-                final_intersection.push(Interval {
+                intersection_final.push(Interval {
                     lower: *common_keys.iter().min().unwrap(),
                     upper: *common_keys.iter().max().unwrap(),
                 });
@@ -192,12 +204,61 @@ fn main() {
         }    
     }
 
-    let duration = startTime.elapsed();
+    return startTime.elapsed().as_millis() as u64;
+}
 
-    println!("The intersection was computed in: {:?}", duration);
+fn main() {
+    for mode in MODES.iter() {
+        println!("\n=== Mode: {} ===", mode);
 
-    // We assume from now on that Alice is the one who needs to find the intersection
-    // In order to do this, she needs to keep a "log" of the elements with their original values before being blinded   
-    // However, this will not work due to the fact that a HashSet introduces randomness
+        // Create the matrix of runtimes    
+        let mut grid: Vec<Vec<u64>> = vec![vec![0; N_VALUES.len()]; RUNS_PER_CONFIG];
+        for (col_idx, &n) in N_VALUES.iter().enumerate() {
+            let config_dir = Path::new(SCALE_ROOT)
+                .join(mode)
+                .join(format!("lineitem_n{}", n));
+            let intervals_path = config_dir.join("intervals_1.json");
 
+            let interval_1 = match load_intervals(&intervals_path) {
+                Ok(v) => v,
+                Err(e) => {
+                    eprintln!("  [n={}] FAILED to load: {}", n, e);
+                    continue;
+                }
+            };
+
+            if interval_1.is_empty() {
+                eprintln!("  [n={}] intervals_1.json is empty, skipping", n);
+                continue;
+            }
+
+            let interval_2: Vec<Interval> = vec![interval_1[0]];
+
+            // Three runs of the PSI for this config
+            print!("  [n={}] runs:", n);
+            for run_idx in 0..RUNS_PER_CONFIG {
+                let elapsed_ms = run_psi(&interval_1, &interval_2);
+                grid[run_idx][col_idx] = elapsed_ms;
+                print!(" {}ms", elapsed_ms);
+            }
+            println!();
+        }
+
+        // Write this mode's CSV: 3 rows, N_VALUES.len() columns, comma-separated.
+        let csv_path = format!("scaleExperiments_{}.csv", mode);
+        if let Err(e) = write_csv(&csv_path, &grid) {
+            eprintln!("  Failed to write {}: {}", csv_path, e);
+        } else {
+            println!("  Wrote {}", csv_path);
+        }
+    }
+}
+
+fn write_csv(path: &str, grid: &[Vec<u64>]) -> std::io::Result<()> {
+    let mut file = fs::File::create(path)?;
+    for row in grid {
+        let line: Vec<String> = row.iter().map(|v| v.to_string()).collect();
+        writeln!(file, "{}", line.join(","))?;
+    }
+    Ok(())
 }

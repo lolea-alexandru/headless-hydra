@@ -1,6 +1,6 @@
 /* ===================== IMPORTS ===================== */
 use tfhe::{ClientKey, prelude::*};
-use tfhe::{ConfigBuilder, generate_keys, set_server_key, FheUint8, FheUint16};
+use tfhe::{ConfigBuilder, generate_keys, set_server_key, FheUint8, FheUint64};
 use serde::{Serialize, Deserialize};
 use std::fs::{self, File};
 use std::io::{BufReader, Write};
@@ -23,18 +23,18 @@ impl PsiParty {
 
 #[derive(PartialEq, Eq, Hash, Debug, Serialize, Deserialize, Clone, Copy)]
 struct Interval {
-    lower: u16,
-    upper: u16,
+    lower: u64,
+    upper: u64,
 }
 
 impl Interval {
-    fn new(lower: u16, upper: u16) -> Self {
+    fn new(lower: u64, upper: u64) -> Self {
         Interval { lower, upper }
     }
 
-    fn encrypt_interval(&self, encryption_key: &ClientKey) -> (FheUint16,FheUint16) {
-        let encrypted_lower = FheUint16::encrypt(self.lower, encryption_key); 
-        let encrypted_upper = FheUint16::encrypt(self.upper, encryption_key); 
+    fn encrypt_interval(&self, encryption_key: &ClientKey) -> (FheUint64,FheUint64) {
+        let encrypted_lower = FheUint64::encrypt(self.lower, encryption_key); 
+        let encrypted_upper = FheUint64::encrypt(self.upper, encryption_key); 
 
         return (encrypted_lower, encrypted_upper);
     }
@@ -42,7 +42,7 @@ impl Interval {
 
 //? At the same time, we are assuming non-overlaping intervals
 
-fn compare_encrypted_intervals(a: &(FheUint16,FheUint16), b: &(FheUint16,FheUint16)) -> (FheUint16, FheUint16) {
+fn compare_encrypted_intervals(a: &(FheUint64,FheUint64), b: &(FheUint64,FheUint64)) -> (FheUint64, FheUint64) {
     //* Check if the two intervals intersect at all
     let start_A_lower_B_start = a.0.le(&b.1);
     let end_A_greater_B_start = a.1.ge(&b.0);
@@ -82,8 +82,8 @@ fn main() {
     println!("The size of the second set is: {:?}", receiver_intervals_json.len());
 
     // TODO: remove -> from previous implementation
-    // let sender_intervals: [(u16,u16); 3] = [(2,3), (5,8) ,(12, 15)];
-    // let receiver_intervals: [(u16,u16); 2] = [(2,6), (13,14)];
+    // let sender_intervals: [(u64,u64); 3] = [(2,3), (5,8) ,(12, 15)];
+    // let receiver_intervals: [(u64,u64); 2] = [(2,6), (13,14)];
 
     // Add the intervals to the correct psi party
     for i in 0..sender_intervals_json.len() {
@@ -94,17 +94,19 @@ fn main() {
         receiver.add_interval(receiver_intervals_json[i]);
     }
 
+    println!("Add intervals to stuff");
         
     // Encrypt the intervals
-    let encrypted_sender_intervals: Vec<(FheUint16, FheUint16)> = sender.intervals.iter().map(|interval| interval.encrypt_interval(&client_key)).collect();
-    let encrypted_receiver_intervals: Vec<(FheUint16, FheUint16)> = receiver.intervals.iter().map(|interval| interval.encrypt_interval(&client_key)).collect();
+    let encrypted_sender_intervals: Vec<(FheUint64, FheUint64)> = sender.intervals.iter().map(|interval| interval.encrypt_interval(&client_key)).collect();
+    let encrypted_receiver_intervals: Vec<(FheUint64, FheUint64)> = receiver.intervals.iter().map(|interval| interval.encrypt_interval(&client_key)).collect();
 
     
-    let mut intersections: Vec<(u16, u16)> = Vec::new(); 
+    let mut intersections: Vec<(u64, u64)> = Vec::new(); 
     
     // Go through intervals 
     for i in 0..encrypted_sender_intervals.len() {
         for j in 0..encrypted_receiver_intervals.len() {
+            
             // Compute the intersection of the intervals
             let (left, right) = compare_encrypted_intervals(&encrypted_sender_intervals[i], &encrypted_receiver_intervals[j]);
             
